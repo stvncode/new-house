@@ -30,6 +30,21 @@ describe('profile-aware suggestions', () => {
     }
   })
 
+  it('adapts climate suggestions to the heating type', () => {
+    const floorHeating = suggestForRoom('bedroom', { heating: 'floor' })
+    expect(floorHeating.some((item) => item.id === 'radiator-valve')).toBe(false)
+    expect(floorHeating.some((item) => item.id === 'pilot-wire-module')).toBe(false)
+
+    const electric = suggestForRoom('bedroom', { heating: 'electric' })
+    expect(electric.some((item) => item.id === 'pilot-wire-module')).toBe(true)
+    expect(electric.some((item) => item.id === 'radiator-valve')).toBe(false)
+
+    // Without a heating answer, radiator valves stay but the niche pilot-wire hides
+    const unknown = suggestForRoom('bedroom', {})
+    expect(unknown.some((item) => item.id === 'radiator-valve')).toBe(true)
+    expect(unknown.some((item) => item.id === 'pilot-wire-module')).toBe(false)
+  })
+
   it('reports when the profile changes anything', () => {
     expect(profileAffectsSuggestions({})).toBe(false)
     expect(profileAffectsSuggestions({ skill: 'beginner' })).toBe(false)

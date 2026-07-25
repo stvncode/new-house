@@ -119,6 +119,16 @@ export const fr: Dict = {
           presence: { label: 'Automatisations de présence' },
         },
       },
+      heating: {
+        title: 'Comment la maison est-elle chauffée ?',
+        help: 'Les bons équipements climat en dépendent entièrement.',
+        options: {
+          radiators: { label: 'Radiateurs à eau', hint: 'Chaudière ou réseau de chaleur' },
+          electric: { label: 'Radiateurs électriques', hint: 'Panneaux ou inertie' },
+          floor: { label: 'Plancher chauffant' },
+          'heat-pump': { label: 'Pompe à chaleur / clim', hint: 'Air-air ou air-eau' },
+        },
+      },
       privacy: {
         title: 'Et le cloud, vous en pensez quoi ?',
         help: 'Le « local d’abord » : tout continue de fonctionner quand internet — ou un fabricant — disparaît.',
@@ -156,6 +166,9 @@ export const fr: Dict = {
     share: 'Copier le lien de partage',
     shareCopied: 'Lien copié — quiconque l’ouvre voit ces recommandations',
     planCta: 'Appliquer à mon plan de maison',
+    applyCta: 'Remplir mes pièces avec ces équipements',
+    applyHint:
+      'Ajoute les équipements recommandés à chaque pièce déjà présente dans votre planificateur — rien de ce que vous avez placé n’est modifié.',
     readGuide: 'Lire le guide',
     categories: {
       ecosystem: 'Écosystème & hub',
@@ -248,6 +261,22 @@ export const fr: Dict = {
       title: 'Le chauffage, c’est l’automatisation rentable',
       body: 'Le pilotage pièce par pièce est là où la domotique paie vraiment : têtes thermostatiques connectées (ou l’intégration de votre PAC) plus un capteur de température par pièce, avec des programmes qui suivent l’occupation réelle. Le confort monte, la facture descend.',
     },
+    'dev-climate-radiators': {
+      title: 'Des têtes connectées sur chaque radiateur',
+      body: 'Avec des radiateurs à eau, les têtes thermostatiques connectées sont l’achat le plus rentable de la maison : programmes par pièce qui suivent l’occupation réelle, détection de fenêtre ouverte, et un capteur de température par pièce pour corriger la mesure de la tête. Gardez le thermostat principal de la chaudière dans la boucle pour qu’elle module au lieu de lutter contre les vannes.',
+    },
+    'dev-climate-electric': {
+      title: 'Des modules fil pilote pour les radiateurs électriques',
+      body: 'Les radiateurs électriques français exposent un fil pilote — un module fil pilote par radiateur donne les modes éco/confort/hors-gel et des programmes par pièce pour ~45 € la pièce. Il faut un neutre au raccordement du radiateur, presque toujours présent. Associez chacun à un capteur de température pour une vraie régulation.',
+    },
+    'dev-climate-floor': {
+      title: 'Un pilotage de zones qui respecte l’inertie',
+      body: 'Un plancher chauffant réagit en heures, pas en minutes — oubliez les réglages réactifs et donnez à chaque zone un thermostat connecté avec anticipation (chauffer avant le réveil, couper avant le coucher). Un capteur de température par zone, des programmes adaptés à l’inertie de la dalle, et résistez à l’envie de micro-gérer.',
+    },
+    'dev-climate-heat-pump': {
+      title: 'Intégrez la PAC — ne luttez pas contre elle',
+      body: 'Les pompes à chaleur modernes régulent mieux en fonctionnant longtemps et régulièrement. Intégrez l’unité elle-même (la plupart des marques ont une intégration locale ou une passerelle Modbus) plutôt que d’ajouter des vannes partout, ajoutez un capteur de température par pièce pour la visibilité, et utilisez les automatisations pour ajuster les consignes — pas pour l’allumer et l’éteindre.',
+    },
     'dev-safety-baseline': {
       title: 'Le socle sécurité, sans paillettes',
       body: 'Avant tout le reste : détecteurs de fumée interconnectés à chaque étage, et un capteur de fuite sous chaque point d’eau — lave-linge, lave-vaisselle, chauffe-eau, chaque salle de bain. Ça coûte moins cher qu’une seule franchise d’assurance.',
@@ -323,6 +352,13 @@ export const fr: Dict = {
     floorDeleted: 'Niveau supprimé',
     projectCleared: 'Projet réinitialisé',
     exported: 'Projet exporté',
+    exportHa: 'Exporter pour Home Assistant',
+    exportHaDone: 'Fichier de démarrage Home Assistant téléchargé',
+    exportCsv: 'Exporter en CSV',
+    applied: (n: number) =>
+      `${n} équipement${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} depuis vos réponses du guide`,
+    appliedNone:
+      'Rien à ajouter — dessinez ou détectez des pièces d’abord, ou les équipements sont déjà placés',
     calibrate: 'Calibrer l’échelle',
     calibrateHint:
       'Cliquez les deux extrémités d’une distance connue sur le plan — une cote imprimée fonctionne très bien.',
@@ -393,6 +429,7 @@ export const fr: Dict = {
     'air-quality-sensor': 'Capteur qualité d’air (CO₂)',
     'smart-thermostat': 'Thermostat connecté',
     'radiator-valve': 'Tête thermostatique connectée',
+    'pilot-wire-module': 'Module fil pilote',
     'smoke-detector': 'Détecteur de fumée connecté',
     'leak-sensor': 'Capteur de fuite d’eau',
     'smart-lock': 'Serrure connectée',
@@ -407,6 +444,36 @@ export const fr: Dict = {
     'poe-switch': 'Switch réseau PoE',
     'voice-satellite': 'Satellite assistant vocal',
     'wall-tablet': 'Tablette murale de contrôle',
+  },
+
+  report: {
+    title: 'Dossier installateur',
+    subtitle: 'Tout ce dont votre électricien a besoin : pièces, équipements et notes de câblage.',
+    generated: (date: string) => `Généré le ${date}`,
+    summary: (floors: number, rooms: number, devices: number) =>
+      `${floors} niveau${floors > 1 ? 'x' : ''} · ${rooms} pièce${rooms > 1 ? 's' : ''} · ${devices} équipement${devices > 1 ? 's' : ''}`,
+    area: 'Surface',
+    device: 'Équipement',
+    qty: 'Qté',
+    unit: 'Unitaire',
+    total: 'Total',
+    protocols: 'Protocoles',
+    neutralBadge: 'neutre requis',
+    noDevices: 'Aucun équipement prévu dans cette pièce',
+    wiringTitle: 'Checklist de câblage',
+    wiringNeutral: (rooms: string) =>
+      `Neutre + boîtes profondes (50 mm) nécessaires dans : ${rooms}`,
+    wiringPoE: (count: number) =>
+      `${count} équipement(s) demandent de l’Ethernet/PoE — tirez du Cat6a avant de fermer les murs`,
+    wiringStatic: [
+      'Toutes les liaisons réseau en étoile vers un panneau de brassage, Cat6a minimum',
+      'Alimentation en angle haut de chaque fenêtre pour de futurs volets ou stores motorisés',
+      'Gaines surdimensionnées avec aiguilles entre les niveaux et vers l’extérieur',
+    ],
+    grandTotal: 'Budget équipements estimé',
+    print: 'Imprimer / Enregistrer en PDF',
+    back: 'Retour au planificateur',
+    empty: 'Aucune pièce planifiée — dessinez ou détectez des pièces dans le planificateur d’abord.',
   },
 
   guides: {

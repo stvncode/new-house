@@ -1,66 +1,74 @@
 import { useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
+import type { ComponentType } from 'react'
 import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
   BanknoteIcon,
   BlendIcon,
   BlindsIcon,
   BookOpenIcon,
   CableIcon,
-  CheckIcon,
   CloudIcon,
   CoinsIcon,
   EqualIcon,
   FileTextIcon,
   FlaskConicalIcon,
   GemIcon,
-  HammerIcon,
   HardHatIcon,
-  HouseIcon,
+  HeaterIcon,
   KeyRoundIcon,
   LightbulbIcon,
-  Link2Icon,
-  LockIcon,
-  MenuIcon,
   MinusIcon,
-  MoonIcon,
   PlugIcon,
   RadarIcon,
-  RotateCcwIcon,
   ShieldIcon,
   SpeakerIcon,
   SproutIcon,
   SquareIcon,
-  TerminalIcon,
-  ThermometerIcon,
-  WalletIcon,
-  WifiIcon,
-  WrenchIcon,
-  ZapIcon,
-  type LucideIcon,
+  WandSparklesIcon,
 } from 'lucide-react'
+import { ArrowLeftIcon } from '@/components/icons/arrow-left'
+import { ArrowRightIcon } from '@/components/icons/arrow-right'
+import { CheckIcon } from '@/components/icons/check'
+import { HammerIcon } from '@/components/icons/hammer'
+import { HomeIcon } from '@/components/icons/home'
+import { LayersIcon } from '@/components/icons/layers'
+import { Link2Icon } from '@/components/icons/link-2'
+import { LockIcon } from '@/components/icons/lock'
+import { MenuIcon } from '@/components/icons/menu'
+import { MoonIcon } from '@/components/icons/moon'
+import { RotateCCWIcon } from '@/components/icons/rotate-ccw'
+import { TerminalIcon } from '@/components/icons/terminal'
+import { ThermometerIcon } from '@/components/icons/thermometer'
+import { WalletIcon } from '@/components/icons/wallet'
+import { WifiIcon } from '@/components/icons/wifi'
+import { WindIcon } from '@/components/icons/wind'
+import { WrenchIcon } from '@/components/icons/wrench'
+import { ZapIcon } from '@/components/icons/zap'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useWizardStore } from '@/stores/wizard'
+import { usePlannerStore } from '@/stores/planner'
 import { QUESTIONS, visibleQuestions } from '@/domain/wizard/questions'
 import { evaluate, groupByCategory } from '@/domain/wizard/engine'
 import type { Answers, Question } from '@/domain/wizard/types'
 import { getDict, localizePath, type Dict, type Locale } from '@/i18n'
 
-const ICONS: Record<string, LucideIcon> = {
+const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'hard-hat': HardHatIcon,
   hammer: HammerIcon,
-  house: HouseIcon,
+  house: HomeIcon,
   square: SquareIcon,
   minus: MinusIcon,
   equal: EqualIcon,
   menu: MenuIcon,
   'key-round': KeyRoundIcon,
   'file-text': FileTextIcon,
+  heater: HeaterIcon,
+  layers: LayersIcon,
+  wind: WindIcon,
   sprout: SproutIcon,
   wrench: WrenchIcon,
   terminal: TerminalIcon,
@@ -132,7 +140,7 @@ function QuestionView({ question, dict }: { question: Question; dict: Dict }) {
                       : 'border-border bg-secondary text-muted-foreground group-hover:text-foreground'
                   }`}
                 >
-                  <Icon className="size-5" />
+                  <Icon className="size-5 [&_svg]:size-5" />
                 </span>
               )}
               <span className="min-w-0 flex-1">
@@ -141,7 +149,7 @@ function QuestionView({ question, dict }: { question: Question; dict: Dict }) {
                   <span className="block text-sm text-muted-foreground">{optionText.hint}</span>
                 )}
               </span>
-              {selected && <CheckIcon className="size-4 shrink-0 text-primary" />}
+              {selected && <CheckIcon className="size-4 shrink-0 text-primary [&_svg]:size-4" />}
             </button>
           )
         })}
@@ -178,7 +186,7 @@ function ResultsView({ dict, locale }: { dict: Dict; locale: Locale }) {
             <ArrowLeftIcon /> {dict.results.editAnswers}
           </Button>
           <Button variant="ghost" size="sm" onClick={reset}>
-            <RotateCcwIcon /> {dict.wizard.restart}
+            <RotateCCWIcon /> {dict.wizard.restart}
           </Button>
         </div>
       </div>
@@ -225,10 +233,19 @@ function ResultsView({ dict, locale }: { dict: Dict; locale: Locale }) {
       <Card className="border-primary/40 bg-primary/5">
         <CardHeader>
           <CardTitle>{dict.results.planCta}</CardTitle>
-          <CardDescription>{dict.home.features.planner.body}</CardDescription>
+          <CardDescription>{dict.results.applyHint}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button asChild size="lg">
+        <CardContent className="flex flex-wrap gap-3">
+          <Button
+            size="lg"
+            onClick={() => {
+              usePlannerStore.getState().applyRecommendations(answers)
+              window.location.href = localizePath('/planner', locale)
+            }}
+          >
+            <WandSparklesIcon /> {dict.results.applyCta}
+          </Button>
+          <Button asChild size="lg" variant="secondary">
             <a href={localizePath('/planner', locale)}>
               {dict.home.ctaPlanner} <ArrowRightIcon />
             </a>

@@ -117,6 +117,16 @@ export const en = {
           presence: { label: 'Presence automation' },
         },
       },
+      heating: {
+        title: 'How is the house heated?',
+        help: 'The right climate devices depend entirely on this.',
+        options: {
+          radiators: { label: 'Water radiators', hint: 'Boiler or district heating' },
+          electric: { label: 'Electric heaters', hint: 'Panel or inertia radiators' },
+          floor: { label: 'Underfloor heating' },
+          'heat-pump': { label: 'Heat pump / AC', hint: 'Air-air or air-water' },
+        },
+      },
       privacy: {
         title: 'How do you feel about the cloud?',
         help: 'Local-first means everything keeps working when the internet — or a vendor — goes away.',
@@ -154,6 +164,9 @@ export const en = {
     share: 'Copy share link',
     shareCopied: 'Link copied — anyone opening it sees these recommendations',
     planCta: 'Apply this to your house plan',
+    applyCta: 'Auto-fill my rooms with these devices',
+    applyHint:
+      'Adds the recommended devices to every room already in your planner — nothing you placed is touched.',
     readGuide: 'Read the guide',
     categories: {
       ecosystem: 'Ecosystem & hub',
@@ -246,6 +259,22 @@ export const en = {
       title: 'Heating is the money automation',
       body: 'Per-room control is where automation genuinely pays: smart radiator valves (or your heat pump’s integration) plus a temperature sensor per room, with schedules that follow real occupancy. Comfort goes up, bills go down.',
     },
+    'dev-climate-radiators': {
+      title: 'Smart valves on every radiator',
+      body: 'With water radiators, smart thermostatic valves are the highest-payback purchase in the house: per-room schedules that follow real occupancy, window-open detection, and a temperature sensor per room to correct the valve’s own reading. Keep the boiler’s main thermostat in the loop so it modulates instead of fighting the valves.',
+    },
+    'dev-climate-electric': {
+      title: 'Pilot-wire modules for the electric heaters',
+      body: 'French-style electric heaters expose a pilot wire — a smart pilot-wire module per heater gives you eco/comfort/frost modes and per-room schedules for ~€45 a room. It needs a neutral at the heater connection, which is almost always present. Pair each with a room temperature sensor for real regulation.',
+    },
+    'dev-climate-floor': {
+      title: 'Zone control that respects slow floors',
+      body: 'Underfloor heating reacts over hours, not minutes — so skip reactive tricks and give each zone a smart thermostat with anticipation (start warming before wake-up, coast before bedtime). One temperature sensor per zone, schedules tuned to the slab’s inertia, and resist the urge to micro-manage it.',
+    },
+    'dev-climate-heat-pump': {
+      title: 'Integrate the heat pump — don’t fight it',
+      body: 'Modern heat pumps regulate best when they run long and steady. Integrate the unit itself (most brands have local integrations or a Modbus path) rather than bolting valves everywhere, add a temperature sensor per room for visibility, and use automations to nudge setpoints — not to switch it on and off.',
+    },
     'dev-safety-baseline': {
       title: 'The unglamorous safety baseline',
       body: 'Before anything fun: interconnected smoke detectors on every floor, and a leak sensor under every water source — washing machine, dishwasher, water heater, each bathroom. They cost less than one insurance deductible.',
@@ -320,6 +349,11 @@ export const en = {
     floorDeleted: 'Floor deleted',
     projectCleared: 'Project cleared',
     exported: 'Project exported',
+    exportHa: 'Export for Home Assistant',
+    exportHaDone: 'Home Assistant starter file downloaded',
+    exportCsv: 'Export CSV',
+    applied: (n: number) => `${n} device${n > 1 ? 's' : ''} added from your guide answers`,
+    appliedNone: 'Nothing to add — draw or detect rooms first, or devices are already placed',
     calibrate: 'Calibrate scale',
     calibrateHint:
       'Click both ends of a known distance on the plan — a printed dimension line works great.',
@@ -390,6 +424,7 @@ export const en = {
     'air-quality-sensor': 'Air quality sensor (CO₂)',
     'smart-thermostat': 'Smart thermostat',
     'radiator-valve': 'Smart radiator valve',
+    'pilot-wire-module': 'Pilot-wire heater module',
     'smoke-detector': 'Smart smoke detector',
     'leak-sensor': 'Water leak sensor',
     'smart-lock': 'Smart lock',
@@ -404,6 +439,35 @@ export const en = {
     'poe-switch': 'PoE network switch',
     'voice-satellite': 'Voice assistant satellite',
     'wall-tablet': 'Wall dashboard tablet',
+  },
+
+  report: {
+    title: 'Installer report',
+    subtitle: 'Everything your electrician needs: rooms, devices, and wiring notes.',
+    generated: (date: string) => `Generated ${date}`,
+    summary: (floors: number, rooms: number, devices: number) =>
+      `${floors} floor${floors > 1 ? 's' : ''} · ${rooms} room${rooms > 1 ? 's' : ''} · ${devices} device${devices > 1 ? 's' : ''}`,
+    area: 'Area',
+    device: 'Device',
+    qty: 'Qty',
+    unit: 'Unit',
+    total: 'Total',
+    protocols: 'Protocols',
+    neutralBadge: 'neutral required',
+    noDevices: 'No devices planned in this room',
+    wiringTitle: 'Wiring checklist',
+    wiringNeutral: (rooms: string) => `Neutral wire + deep (50mm) boxes needed in: ${rooms}`,
+    wiringPoE: (count: number) =>
+      `${count} device(s) want Ethernet/PoE — run Cat6a before closing walls`,
+    wiringStatic: [
+      'All network runs home to one patch panel (star topology), Cat6a minimum',
+      'Power at each window top corner for future motorized shutters or blinds',
+      'Oversized conduits with pull strings between floors and to the exterior',
+    ],
+    grandTotal: 'Estimated device budget',
+    print: 'Print / Save as PDF',
+    back: 'Back to planner',
+    empty: 'No rooms planned yet — draw or detect rooms in the planner first.',
   },
 
   guides: {

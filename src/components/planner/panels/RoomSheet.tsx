@@ -1,4 +1,5 @@
-import { MinusIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { MinusIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon } from '@/components/icons/plus'
 import { toast } from 'sonner'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -47,7 +48,11 @@ export function RoomSheet({ dict, locale }: { dict: Dict; locale: Locale }) {
     <Sheet open modal={false} onOpenChange={(open) => !open && selectRoom(null)}>
       <SheetContent
         overlay={false}
-        onInteractOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // Keep the sheet open while editing on the plan; close for any other outside click
+          const target = e.target as HTMLElement | null
+          if (target?.closest('svg[role="application"]')) e.preventDefault()
+        }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <SheetHeader>

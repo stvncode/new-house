@@ -61,6 +61,17 @@ describe('wizard engine', () => {
     expect(ids({ size: 's', floors: 'one' })).not.toContain('net-wired-aps')
   })
 
+  it('picks the climate recommendation matching the heating type', () => {
+    const heatPump = ids({ priorities: ['climate'], heating: 'heat-pump' })
+    expect(heatPump).toContain('dev-climate-heat-pump')
+    expect(heatPump).not.toContain('dev-climate')
+    expect(heatPump).not.toContain('dev-climate-radiators')
+
+    const unanswered = ids({ priorities: ['climate'] })
+    expect(unanswered).toContain('dev-climate')
+    expect(unanswered).not.toContain('dev-climate-heat-pump')
+  })
+
   it('sorts recommendations by category order then priority', () => {
     const result = evaluate({ stage: 'new-build', budget: 'pro', maintenance: 'set-forget' })
     const categories = result.map((r) => r.category)

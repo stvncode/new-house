@@ -1,5 +1,5 @@
 import type { Question } from './types'
-import { is } from './answers'
+import { has, is } from './answers'
 
 /**
  * The wizard's question graph. Text lives in the i18n dictionaries under
@@ -69,6 +69,17 @@ export const QUESTIONS: Question[] = [
       { id: 'media', icon: 'speaker' },
       { id: 'presence', icon: 'radar' },
     ],
+  },
+  {
+    id: 'heating',
+    options: [
+      { id: 'radiators', icon: 'heater' },
+      { id: 'electric', icon: 'zap' },
+      { id: 'floor', icon: 'layers' },
+      { id: 'heat-pump', icon: 'wind' },
+    ],
+    // Only worth asking when climate control is a stated priority
+    visibleIf: (a) => has(a, 'priorities', 'climate'),
   },
   {
     id: 'privacy',

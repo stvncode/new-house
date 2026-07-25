@@ -1,0 +1,17 @@
+---
+import Base from '@/layouts/Base.astro'
+import ReportApp from '@/components/planner/report/ReportApp'
+import { getDict, LOCALES, isLocale, type Locale } from '@/i18n'
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }))
+}
+
+const lang = Astro.params.lang
+const locale: Locale = isLocale(lang) ? lang : 'en'
+const dict = getDict(locale)
+---
+
+<Base locale={locale} title={dict.report.title}>
+  <ReportApp client:only="react" locale={locale} />
+</Base>

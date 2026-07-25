@@ -1,26 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Building2Icon,
-  DownloadIcon,
   EraserIcon,
-  EyeIcon,
-  EyeOffIcon,
-  HouseIcon,
   ImageIcon,
   ListIcon,
-  MousePointer2Icon,
-  PenLineIcon,
-  PlusIcon,
   PrinterIcon,
-  Redo2Icon,
   RulerIcon,
-  SparklesIcon,
   Trash2Icon,
-  Undo2Icon,
-  UploadIcon,
   WandSparklesIcon,
-  XIcon,
 } from 'lucide-react'
+import { CursorClickIcon } from '@/components/icons/cursor-click'
+import { DownloadIcon } from '@/components/icons/download'
+import { EyeIcon } from '@/components/icons/eye'
+import { EyeOffIcon } from '@/components/icons/eye-off'
+import { HomeIcon } from '@/components/icons/home'
+import { PlusIcon } from '@/components/icons/plus'
+import { RedoIcon } from '@/components/icons/redo'
+import { SparklesIcon } from '@/components/icons/sparkles'
+import { SquarePenIcon } from '@/components/icons/square-pen'
+import { UndoIcon } from '@/components/icons/undo'
+import { UploadIcon } from '@/components/icons/upload'
+import { XIcon } from '@/components/icons/x'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
@@ -48,7 +48,8 @@ import { ShoppingList } from './panels/ShoppingList'
 import { usePlannerStore, isProject } from '@/stores/planner'
 import { areaSquareMeters } from '@/domain/planner/geometry'
 import { budgetTotal, deviceCount, formatEur } from '@/domain/planner/budget'
-import { getDict, type Locale } from '@/i18n'
+import { toHomeAssistantYaml } from '@/domain/export/homeAssistant'
+import { getDict, localizePath, type Dict, type Locale } from '@/i18n'
 
 export default function PlannerApp({ locale }: { locale: Locale }) {
   const dict = getDict(locale)
@@ -269,8 +270,32 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
           <Button variant="ghost" size="sm" onClick={() => importRef.current?.click()}>
             <UploadIcon /> {dict.planner.importJson}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => window.print()}>
-            <PrinterIcon /> {dict.planner.print}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const yaml = toHomeAssistantYaml(project, {
+                deviceName: (id) => dict.catalog[id as keyof Dict['catalog']] ?? id,
+                floorName: (level) => dict.planner.floorN(level),
+                roomName: (name, type) =>
+                  name || dict.roomTypes[type as keyof Dict['roomTypes']] || type,
+              })
+              const blob = new Blob([yaml], { type: 'text/yaml' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = 'foyer-home-assistant.yaml'
+              a.click()
+              URL.revokeObjectURL(url)
+              toast.success(dict.planner.exportHaDone)
+            }}
+          >
+            <HomeIcon /> {dict.planner.exportHa}
+          </Button>
+          <Button asChild variant="ghost" size="sm">
+            <a href={localizePath('/report', locale)}>
+              <PrinterIcon /> {dict.planner.print}
+            </a>
           </Button>
           <input
             ref={importRef}
@@ -290,10 +315,10 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList>
             <TabsTrigger value="plan">
-              <PenLineIcon /> {dict.planner.tabs.plan}
+              <SquarePenIcon /> {dict.planner.tabs.plan}
             </TabsTrigger>
             <TabsTrigger value="house">
-              <HouseIcon /> {dict.planner.tabs.house}
+              <HomeIcon /> {dict.planner.tabs.house}
             </TabsTrigger>
             <TabsTrigger value="list">
               <ListIcon /> {dict.planner.tabs.list}
@@ -355,14 +380,14 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
                   size="sm"
                   onClick={() => setMode('select')}
                 >
-                  <MousePointer2Icon /> {dict.planner.select}
+                  <CursorClickIcon /> {dict.planner.select}
                 </Button>
                 <Button
                   variant={mode === 'draw' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setMode('draw')}
                 >
-                  <PenLineIcon /> {dict.planner.drawRoom}
+                  <SquarePenIcon /> {dict.planner.drawRoom}
                 </Button>
                 <Button
                   variant={mode === 'calibrate' ? 'default' : 'ghost'}
@@ -380,7 +405,7 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
                   aria-label={dict.planner.undo}
                   title={`${dict.planner.undo} (⌘Z)`}
                 >
-                  <Undo2Icon />
+                  <UndoIcon />
                 </Button>
                 <Button
                   variant="ghost"
@@ -390,7 +415,7 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
                   aria-label={dict.planner.redo}
                   title={`${dict.planner.redo} (⇧⌘Z)`}
                 >
-                  <Redo2Icon />
+                  <RedoIcon />
                 </Button>
                 <div className="mx-2 h-5 w-px bg-border" />
                 <Button variant="ghost" size="sm" onClick={() => bgRef.current?.click()}>

@@ -1,7 +1,7 @@
 import { CATALOG } from '@/domain/catalog/devices'
 import type { CatalogItem, RoomType, Tier } from '@/domain/catalog/types'
 import type { Answers } from '@/domain/wizard/types'
-import { is } from '@/domain/wizard/answers'
+import { is, single } from '@/domain/wizard/answers'
 
 const TIER_ORDER: Record<Tier, number> = { essential: 0, comfort: 1, premium: 2 }
 
@@ -21,6 +21,16 @@ export function suggestForRoom(roomType: RoomType, answers?: Answers): CatalogIt
     items = items.filter(
       (item) => !item.requiresNeutral && !(item.power === 'wired' && !item.perHouse),
     )
+  }
+
+  // Heating type decides which climate actuators even make sense
+  const heating = answers ? single(answers, 'heating') : undefined
+  if (heating !== undefined && heating !== 'radiators') {
+    items = items.filter((item) => item.id !== 'radiator-valve')
+  }
+  if (heating !== 'electric') {
+    // Pilot-wire modules only exist for French-style electric heaters
+    items = items.filter((item) => item.id !== 'pilot-wire-module')
   }
 
   const localOnly = answers !== undefined && is(answers, 'privacy', 'local-only')

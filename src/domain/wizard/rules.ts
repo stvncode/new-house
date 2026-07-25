@@ -1,5 +1,5 @@
 import type { Rule } from './types'
-import { canWire, has, is, isLargeHouse, multi } from './answers'
+import { canWire, has, is, isLargeHouse, multi, single } from './answers'
 
 /**
  * The recommendation rulebook. Each rule's title/body lives in the i18n
@@ -155,7 +155,35 @@ export const RULES: Rule[] = [
     id: 'dev-climate',
     category: 'devices',
     priority: 75,
-    when: (a) => has(a, 'priorities', 'climate'),
+    when: (a) => has(a, 'priorities', 'climate') && single(a, 'heating') === undefined,
+    guides: ['room-by-room'],
+  },
+  {
+    id: 'dev-climate-radiators',
+    category: 'devices',
+    priority: 75,
+    when: (a) => has(a, 'priorities', 'climate') && is(a, 'heating', 'radiators'),
+    guides: ['room-by-room'],
+  },
+  {
+    id: 'dev-climate-electric',
+    category: 'devices',
+    priority: 75,
+    when: (a) => has(a, 'priorities', 'climate') && is(a, 'heating', 'electric'),
+    guides: ['room-by-room'],
+  },
+  {
+    id: 'dev-climate-floor',
+    category: 'devices',
+    priority: 75,
+    when: (a) => has(a, 'priorities', 'climate') && is(a, 'heating', 'floor'),
+    guides: ['room-by-room'],
+  },
+  {
+    id: 'dev-climate-heat-pump',
+    category: 'devices',
+    priority: 75,
+    when: (a) => has(a, 'priorities', 'climate') && is(a, 'heating', 'heat-pump'),
     guides: ['room-by-room'],
   },
   {

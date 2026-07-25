@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Building2Icon, CheckIcon, ImageIcon, PlusIcon } from 'lucide-react'
+import { Building2Icon, ImageIcon } from 'lucide-react'
+import { CheckIcon } from '@/components/icons/check'
+import { PlusIcon } from '@/components/icons/plus'
 import {
   Dialog,
   DialogContent,
@@ -78,7 +80,7 @@ export function PlanFloorDialog({
                     </span>
                   )}
                 </span>
-                {selected && <CheckIcon className="size-4 shrink-0 text-primary" />}
+                {selected && <CheckIcon className="size-4 shrink-0 text-primary [&_svg]:size-4" />}
               </button>
             )
           })}
@@ -86,9 +88,9 @@ export function PlanFloorDialog({
             className={optionClass(target === 'new-floor')}
             onClick={() => setTarget('new-floor')}
           >
-            <PlusIcon className="size-4 shrink-0 text-muted-foreground" />
+            <PlusIcon className="size-4 shrink-0 text-muted-foreground [&_svg]:size-4" />
             <span className="flex-1 font-medium">{dict.planner.planDialogNewFloor}</span>
-            {target === 'new-floor' && <CheckIcon className="size-4 shrink-0 text-primary" />}
+            {target === 'new-floor' && <CheckIcon className="size-4 shrink-0 text-primary [&_svg]:size-4" />}
           </button>
         </div>
 

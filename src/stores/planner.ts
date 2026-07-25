@@ -4,6 +4,8 @@ import { emptyProject, type Project, type Room, type Vec2 } from '@/domain/plann
 import { DEMO_PROJECT } from '@/domain/planner/demo'
 import type { RoomType } from '@/domain/catalog/types'
 import { clearBackgrounds, deleteBackground, saveBackground } from '@/lib/imageStore'
+import { autoplan } from '@/domain/planner/autoplan'
+import type { Answers } from '@/domain/wizard/types'
 
 export type EditorMode = 'select' | 'draw' | 'calibrate'
 
@@ -62,6 +64,8 @@ interface PlannerStore {
   loadDemo: () => void
   clearAll: () => void
   importProject: (project: Project) => void
+  /** Fill rooms with wizard-recommended devices; returns how many were added */
+  applyRecommendations: (answers: Answers) => number
 }
 
 function uid(): string {
@@ -318,6 +322,13 @@ export const usePlannerStore = create<PlannerStore>()(
           selectedRoomId: null,
           draft: [],
         })),
+      applyRecommendations: (answers) => {
+        const { project: next, added } = autoplan(get().project, answers)
+        if (added > 0) {
+          set((s) => ({ ...record(s), project: next }))
+        }
+        return added
+      },
     }),
     {
       name: 'foyer-planner',

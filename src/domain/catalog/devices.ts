@@ -126,6 +126,16 @@ export const CATALOG: CatalogItem[] = [
     power: 'battery',
     roomTypes: ['living', 'dining', 'bedroom', 'office', 'bathroom'],
   },
+  {
+    id: 'pilot-wire-module',
+    category: 'climate',
+    tier: 'essential',
+    priceEur: 45,
+    protocols: ['zigbee', 'wifi'],
+    power: 'wired',
+    roomTypes: ['living', 'dining', 'bedroom', 'office', 'bathroom'],
+    requiresNeutral: true,
+  },
 
   // Security & safety
   {

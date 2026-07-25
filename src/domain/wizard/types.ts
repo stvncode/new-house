@@ -6,6 +6,7 @@ export type QuestionId =
   | 'skill'
   | 'budget'
   | 'priorities'
+  | 'heating'
   | 'privacy'
   | 'wiring'
   | 'maintenance'

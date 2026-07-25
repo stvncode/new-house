@@ -7,7 +7,11 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table'
-import { ArrowUpDownIcon, CableIcon, ZapIcon } from 'lucide-react'
+import { ArrowUpDownIcon, CableIcon } from 'lucide-react'
+import { FileChartLineIcon } from '@/components/icons/file-chart-line'
+import { ZapIcon } from '@/components/icons/zap'
+import { Button } from '@/components/ui/button'
+import { toShoppingCsv } from '@/domain/export/homeAssistant'
 import {
   Table,
   TableBody,
@@ -113,8 +117,26 @@ export function ShoppingList({ dict, locale }: { dict: Dict; locale: Locale }) {
     .filter((r) => r.item.protocols.includes('poe') || r.item.protocols.includes('ethernet'))
     .reduce((sum, r) => sum + r.qty, 0)
 
+  const onExportCsv = () => {
+    const csv = toShoppingCsv(rows, dict.planner.listHeaders, {
+      deviceName: (id) => dict.catalog[id as keyof Dict['catalog']] ?? id,
+    })
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'foyer-shopping-list.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={onExportCsv}>
+          <FileChartLineIcon /> {dict.planner.exportCsv}
+        </Button>
+      </div>
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -167,7 +189,7 @@ export function ShoppingList({ dict, locale }: { dict: Dict; locale: Locale }) {
           <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
             {neutralRooms.length > 0 && (
               <p className="flex items-start gap-2">
-                <ZapIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                <ZapIcon className="mt-0.5 size-3.5 shrink-0 text-primary [&_svg]:size-3.5" />
                 {dict.planner.wiringNeutral(neutralRooms.join(', '))}
               </p>
             )}
