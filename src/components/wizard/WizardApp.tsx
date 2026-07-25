@@ -1,4 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -19,6 +21,7 @@ import {
   HouseIcon,
   KeyRoundIcon,
   LightbulbIcon,
+  Link2Icon,
   LockIcon,
   MenuIcon,
   MinusIcon,
@@ -43,9 +46,9 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useWizardStore } from '@/stores/wizard'
-import { visibleQuestions } from '@/domain/wizard/questions'
+import { QUESTIONS, visibleQuestions } from '@/domain/wizard/questions'
 import { evaluate, groupByCategory } from '@/domain/wizard/engine'
-import type { Question } from '@/domain/wizard/types'
+import type { Answers, Question } from '@/domain/wizard/types'
 import { getDict, localizePath, type Dict, type Locale } from '@/i18n'
 
 const ICONS: Record<string, LucideIcon> = {
@@ -158,7 +161,19 @@ function ResultsView({ dict, locale }: { dict: Dict; locale: Locale }) {
           <h2 className="font-display text-3xl font-semibold">{dict.results.title}</h2>
           <p className="mt-2 max-w-xl text-muted-foreground">{dict.results.subtitle}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              const encoded = btoa(encodeURIComponent(JSON.stringify(answers)))
+              const url = `${window.location.origin}${localizePath('/wizard', locale)}?a=${encoded}`
+              await navigator.clipboard.writeText(url)
+              toast.success(dict.results.shareCopied)
+            }}
+          >
+            <Link2Icon /> {dict.results.share}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setStep(0)}>
             <ArrowLeftIcon /> {dict.results.editAnswers}
           </Button>
@@ -228,6 +243,32 @@ export default function WizardApp({ locale }: { locale: Locale }) {
   const dict = getDict(locale)
   const { answers, step, setStep } = useWizardStore()
 
+  // Shared results link: ?a=<encoded answers> hydrates the store and jumps to results
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get('a')
+    if (!raw) return
+    try {
+      const parsed: unknown = JSON.parse(decodeURIComponent(atob(raw)))
+      if (typeof parsed !== 'object' || parsed === null) return
+      const incoming = parsed as Record<string, unknown>
+      const valid: Answers = {}
+      for (const question of QUESTIONS) {
+        const value = incoming[question.id]
+        if (
+          typeof value === 'string' ||
+          (Array.isArray(value) && value.every((v) => typeof v === 'string'))
+        ) {
+          valid[question.id] = value as string | string[]
+        }
+      }
+      if (Object.keys(valid).length > 0) {
+        useWizardStore.setState({ answers: valid, step: 999 })
+      }
+    } catch {
+      // Malformed share link — ignore it
+    }
+  }, [])
+
   const questions = visibleQuestions(answers)
   const total = questions.length
   const clamped = Math.min(step, total)
@@ -238,7 +279,14 @@ export default function WizardApp({ locale }: { locale: Locale }) {
       ? Array.isArray(answers[question.id]) && (answers[question.id] as string[]).length > 0
       : typeof answers[question.id] === 'string')
 
-  if (!question) return <ResultsView dict={dict} locale={locale} />
+  if (!question) {
+    return (
+      <>
+        <ResultsView dict={dict} locale={locale} />
+        <Toaster />
+      </>
+    )
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">

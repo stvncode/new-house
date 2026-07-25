@@ -5,6 +5,8 @@ export type Vec2 = [number, number]
 export interface PlannedDevice {
   catalogId: string
   qty: number
+  /** Optional per-instance placement in plan units; missing entries auto-layout */
+  positions?: Vec2[]
 }
 
 export interface Room {

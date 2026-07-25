@@ -5,7 +5,9 @@ import { DEMO_PROJECT } from '@/domain/planner/demo'
 import type { RoomType } from '@/domain/catalog/types'
 import { clearBackgrounds, deleteBackground, saveBackground } from '@/lib/imageStore'
 
-export type EditorMode = 'select' | 'draw'
+export type EditorMode = 'select' | 'draw' | 'calibrate'
+
+const HISTORY_LIMIT = 50
 
 interface PlannerStore {
   project: Project
@@ -14,8 +16,11 @@ interface PlannerStore {
   mode: EditorMode
   /** In-progress polygon while drawing */
   draft: Vec2[]
-  /** Plan images to trace over, keyed by floor id — session only, not persisted */
+  /** Plan images to trace over, keyed by floor id — persisted in IndexedDB */
   backgrounds: Record<string, string>
+  /** Undo/redo snapshots of the project — session only */
+  past: Project[]
+  future: Project[]
 
   setMode: (mode: EditorMode) => void
   setActiveFloor: (floorId: string) => void
@@ -23,6 +28,14 @@ interface PlannerStore {
   /** Remove a floor and its rooms; remaining floors are renumbered from 0 */
   deleteFloor: (floorId: string) => void
   selectRoom: (roomId: string | null) => void
+
+  undo: () => void
+  redo: () => void
+  /** Snapshot the current project before a burst of live updates (e.g. a drag) */
+  beginHistory: () => void
+
+  /** Set the plan-units-per-meter scale (from calibration) */
+  setUnitsPerMeter: (unitsPerMeter: number) => void
 
   addDraftPoint: (point: Vec2) => void
   /** Remove the last placed corner of the in-progress polygon */
@@ -34,8 +47,12 @@ interface PlannerStore {
   /** Replace the active floor's rooms with auto-detected polygons (pass [] to clear) */
   replaceDetectedRooms: (polygons: Vec2[][]) => void
   updateRoom: (roomId: string, patch: Partial<Pick<Room, 'name' | 'type'>>) => void
+  /** Replace a room's polygon; record=false during drags (call beginHistory first) */
+  updateRoomPolygon: (roomId: string, polygon: Vec2[], record?: boolean) => void
   deleteRoom: (roomId: string) => void
   setDeviceQty: (roomId: string, catalogId: string, qty: number) => void
+  /** Move one placed instance of a device; live (call beginHistory at drag start) */
+  setDevicePosition: (roomId: string, catalogId: string, index: number, point: Vec2) => void
 
   setBackground: (floorId: string, dataUrl: string) => void
   removeBackground: (floorId: string) => void
@@ -63,6 +80,14 @@ function mapRooms(project: Project, roomId: string, fn: (room: Room) => Room): P
   }
 }
 
+/** Push the pre-change project onto the undo stack and clear the redo stack */
+function record(s: Pick<PlannerStore, 'project' | 'past'>) {
+  return {
+    past: [...s.past.slice(-(HISTORY_LIMIT - 1)), s.project],
+    future: [] as Project[],
+  }
+}
+
 export const usePlannerStore = create<PlannerStore>()(
   persist(
     (set, get) => ({
@@ -72,6 +97,8 @@ export const usePlannerStore = create<PlannerStore>()(
       mode: 'select',
       draft: [],
       backgrounds: {},
+      past: [],
+      future: [],
 
       setMode: (mode) => set({ mode, draft: [] }),
       setActiveFloor: (floorId) =>
@@ -81,6 +108,7 @@ export const usePlannerStore = create<PlannerStore>()(
           const maxLevel = Math.max(...s.project.floors.map((f) => f.level))
           const floor = { id: `floor-${uid()}`, level: maxLevel + 1, name: '', rooms: [] }
           return {
+            ...record(s),
             project: { ...s.project, floors: [...s.project.floors, floor] },
             activeFloorId: floor.id,
           }
@@ -98,6 +126,7 @@ export const usePlannerStore = create<PlannerStore>()(
             .map((floor, index) => ({ ...floor, level: index }))
           const { [floorId]: _removed, ...backgrounds } = s.backgrounds
           return {
+            ...record(s),
             project: { ...s.project, floors },
             activeFloorId: floors.some((f) => f.id === s.activeFloorId)
               ? s.activeFloorId
@@ -110,11 +139,43 @@ export const usePlannerStore = create<PlannerStore>()(
       },
       selectRoom: (roomId) => set({ selectedRoomId: roomId }),
 
+      undo: () =>
+        set((s) => {
+          const previous = s.past[s.past.length - 1]
+          if (!previous) return {}
+          return {
+            past: s.past.slice(0, -1),
+            future: [s.project, ...s.future].slice(0, HISTORY_LIMIT),
+            project: previous,
+            selectedRoomId: null,
+            draft: [],
+          }
+        }),
+      redo: () =>
+        set((s) => {
+          const next = s.future[0]
+          if (!next) return {}
+          return {
+            past: [...s.past.slice(-(HISTORY_LIMIT - 1)), s.project],
+            future: s.future.slice(1),
+            project: next,
+            selectedRoomId: null,
+            draft: [],
+          }
+        }),
+      beginHistory: () => set((s) => record(s)),
+
+      setUnitsPerMeter: (unitsPerMeter) =>
+        set((s) => ({
+          ...record(s),
+          project: { ...s.project, unitsPerMeter },
+        })),
+
       addDraftPoint: (point) => set((s) => ({ draft: [...s.draft, point] })),
       removeLastDraftPoint: () => set((s) => ({ draft: s.draft.slice(0, -1) })),
       cancelDraft: () => set({ draft: [] }),
       commitDraft: () => {
-        const { draft, project, activeFloorId } = get()
+        const { draft } = get()
         if (draft.length < 3) return null
         const room: Room = {
           id: `room-${uid()}`,
@@ -123,24 +184,26 @@ export const usePlannerStore = create<PlannerStore>()(
           polygon: draft,
           devices: [],
         }
-        set({
+        set((s) => ({
+          ...record(s),
           project: {
-            ...project,
-            floors: project.floors.map((floor) =>
-              floor.id === activeFloorId
+            ...s.project,
+            floors: s.project.floors.map((floor) =>
+              floor.id === s.activeFloorId
                 ? { ...floor, rooms: [...floor.rooms, room] }
                 : floor,
             ),
           },
           draft: [],
-          mode: 'select',
+          mode: 'select' as EditorMode,
           selectedRoomId: room.id,
-        })
+        }))
         return room.id
       },
 
       replaceDetectedRooms: (polygons) =>
         set((s) => ({
+          ...record(s),
           project: {
             ...s.project,
             floors: s.project.floors.map((floor) =>
@@ -164,9 +227,18 @@ export const usePlannerStore = create<PlannerStore>()(
           selectedRoomId: null,
         })),
       updateRoom: (roomId, patch) =>
-        set((s) => ({ project: mapRooms(s.project, roomId, (r) => ({ ...r, ...patch })) })),
+        set((s) => ({
+          ...record(s),
+          project: mapRooms(s.project, roomId, (r) => ({ ...r, ...patch })),
+        })),
+      updateRoomPolygon: (roomId, polygon, recordChange = false) =>
+        set((s) => ({
+          ...(recordChange ? record(s) : {}),
+          project: mapRooms(s.project, roomId, (r) => ({ ...r, polygon })),
+        })),
       deleteRoom: (roomId) =>
         set((s) => ({
+          ...record(s),
           project: {
             ...s.project,
             floors: s.project.floors.map((floor) => ({
@@ -178,11 +250,31 @@ export const usePlannerStore = create<PlannerStore>()(
         })),
       setDeviceQty: (roomId, catalogId, qty) =>
         set((s) => ({
+          ...record(s),
           project: mapRooms(s.project, roomId, (room) => {
+            const existing = room.devices.find((d) => d.catalogId === catalogId)
             const devices = room.devices.filter((d) => d.catalogId !== catalogId)
-            if (qty > 0) devices.push({ catalogId, qty })
+            if (qty > 0) {
+              devices.push({
+                catalogId,
+                qty,
+                positions: existing?.positions?.slice(0, qty),
+              })
+            }
             return { ...room, devices }
           }),
+        })),
+      setDevicePosition: (roomId, catalogId, index, point) =>
+        set((s) => ({
+          project: mapRooms(s.project, roomId, (room) => ({
+            ...room,
+            devices: room.devices.map((device) => {
+              if (device.catalogId !== catalogId) return device
+              const positions = [...(device.positions ?? [])]
+              positions[index] = point
+              return { ...device, positions }
+            }),
+          })),
         })),
 
       setBackground: (floorId, dataUrl) => {
@@ -200,33 +292,39 @@ export const usePlannerStore = create<PlannerStore>()(
         set((s) => ({ backgrounds: { ...backgrounds, ...s.backgrounds } })),
 
       loadDemo: () =>
-        set({
+        set((s) => ({
+          ...record(s),
           project: structuredClone(DEMO_PROJECT),
           activeFloorId: DEMO_PROJECT.floors[0]!.id,
           selectedRoomId: null,
           draft: [],
-        }),
+        })),
       clearAll: () => {
         void clearBackgrounds()
-        set({
+        set((s) => ({
+          ...record(s),
           project: emptyProject(),
           activeFloorId: 'floor-0',
           selectedRoomId: null,
           draft: [],
           backgrounds: {},
-        })
+        }))
       },
       importProject: (project) =>
-        set({
+        set((s) => ({
+          ...record(s),
           project,
           activeFloorId: project.floors[0]?.id ?? 'floor-0',
           selectedRoomId: null,
           draft: [],
-        }),
+        })),
     }),
     {
       name: 'foyer-planner',
-      partialize: (s) => ({ project: s.project, activeFloorId: s.activeFloorId }),
+      partialize: (s) => ({
+        project: s.project,
+        activeFloorId: s.activeFloorId,
+      }),
     },
   ),
 )

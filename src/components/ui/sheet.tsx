@@ -11,13 +11,18 @@ function SheetContent({
   className,
   children,
   side = 'right',
+  overlay = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   side?: 'right' | 'left' | 'bottom'
+  /** Set false for non-modal sheets that let the user keep working behind them */
+  overlay?: boolean
 }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+      {overlay && (
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+      )}
       <DialogPrimitive.Content
         data-slot="sheet-content"
         className={cn(

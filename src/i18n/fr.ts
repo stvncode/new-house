@@ -153,6 +153,8 @@ export const fr: Dict = {
     subtitle:
       'Basées sur vos réponses. Chaque carte renvoie vers un guide qui explique le raisonnement — lisez-les avant de dépenser.',
     editAnswers: 'Modifier mes réponses',
+    share: 'Copier le lien de partage',
+    shareCopied: 'Lien copié — quiconque l’ouvre voit ces recommandations',
     planCta: 'Appliquer à mon plan de maison',
     readGuide: 'Lire le guide',
     categories: {
@@ -321,6 +323,19 @@ export const fr: Dict = {
     floorDeleted: 'Niveau supprimé',
     projectCleared: 'Projet réinitialisé',
     exported: 'Projet exporté',
+    calibrate: 'Calibrer l’échelle',
+    calibrateHint:
+      'Cliquez les deux extrémités d’une distance connue sur le plan — une cote imprimée fonctionne très bien.',
+    calibrateTitle: 'Distance réelle',
+    calibrateBody: 'Saisissez la distance réelle entre les deux points cliqués.',
+    calibrateMeters: 'Distance en mètres',
+    calibrateDone: 'Échelle calibrée — surfaces et budget utilisent désormais les vraies dimensions',
+    calibrateInvalid: 'Saisissez une distance valide en mètres',
+    editHint:
+      'Glissez les angles pour ajuster · double-clic sur un angle pour le supprimer · cliquez un point d’arête pour en ajouter · glissez les points d’équipement pour les placer',
+    undo: 'Annuler',
+    redo: 'Rétablir',
+    profileHint: 'Adapté à vos réponses du guide',
     planDialogTitle: 'À quel niveau correspond ce plan ?',
     planDialogBody:
       'Le plan et ses pièces détectées seront affectés au niveau choisi.',

@@ -4,6 +4,7 @@ import { Edges, Html, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { Project, Room, Vec2 } from '@/domain/planner/types'
 import { bounds, centroid, polygonArea } from '@/domain/planner/geometry'
+import { devicePoints } from '@/domain/planner/placement'
 
 /** Radial warm gradient used for the light pools around lit rooms */
 let glowTexture: THREE.CanvasTexture | null = null
@@ -51,7 +52,7 @@ function getGrassTexture(): THREE.CanvasTexture {
 
 /** Soft warm halo for the sun */
 let sunHaloTexture: THREE.CanvasTexture | null = null
-function getSunHaloTexture(): THREE.CanvasTexture {
+function getHaloTexture(): THREE.CanvasTexture {
   if (sunHaloTexture) return sunHaloTexture
   const size = 256
   const canvas = document.createElement('canvas')
@@ -224,6 +225,26 @@ function RoomMesh({
         </mesh>
       ))}
 
+      {/* Placed devices as small glowing markers on the floor */}
+      {!ghosted &&
+        devicePoints(room).map((marker) => (
+          <mesh
+            key={`${marker.catalogId}-${marker.index}`}
+            position={[
+              (marker.point[0] - transform.cx) * transform.scale,
+              PLATE + 0.09,
+              (marker.point[1] - transform.cy) * transform.scale,
+            ]}
+          >
+            <sphereGeometry args={[0.09, 12, 12]} />
+            <meshStandardMaterial
+              color={COLOR_GLOW}
+              emissive={COLOR_GLOW}
+              emissiveIntensity={0.9}
+            />
+          </mesh>
+        ))}
+
       {/* Warm interior light, brighter when the room has devices planned */}
       {!ghosted && (
         <pointLight
@@ -352,7 +373,7 @@ function Sun({ d }: { d: number }) {
       </mesh>
       <sprite scale={[d * 0.32, d * 0.32, 1]}>
         <spriteMaterial
-          map={getSunHaloTexture()}
+          map={getHaloTexture()}
           transparent
           depthWrite={false}
           blending={THREE.AdditiveBlending}

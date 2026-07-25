@@ -12,8 +12,11 @@ import {
   PenLineIcon,
   PlusIcon,
   PrinterIcon,
+  Redo2Icon,
+  RulerIcon,
   SparklesIcon,
   Trash2Icon,
+  Undo2Icon,
   UploadIcon,
   WandSparklesIcon,
   XIcon,
@@ -28,6 +31,17 @@ import { detectRoomsFromImage } from './trace/detect'
 import { compressPlanImage } from './trace/compress'
 import { PlanFloorDialog, type PlanTarget } from './panels/PlanFloorDialog'
 import { loadBackgrounds } from '@/lib/imageStore'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import type { Vec2 } from '@/domain/planner/types'
 import { HouseScene } from './scene/HouseScene'
 import { RoomSheet } from './panels/RoomSheet'
 import { ShoppingList } from './panels/ShoppingList'
@@ -56,6 +70,11 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
     loadDemo,
     clearAll,
     importProject,
+    undo,
+    redo,
+    past,
+    future,
+    setUnitsPerMeter,
   } = store
 
   // Returning users with a house already traced land on the 3D view
@@ -68,6 +87,9 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
   const [showBackground, setShowBackground] = useState(true)
   /** Uploaded plan waiting for the user to pick its floor */
   const [pendingPlan, setPendingPlan] = useState<string | null>(null)
+  /** Two clicked calibration points waiting for the real distance */
+  const [calibratePending, setCalibratePending] = useState<[Vec2, Vec2] | null>(null)
+  const [calibrateMeters, setCalibrateMeters] = useState('')
   const importRef = useRef<HTMLInputElement>(null)
   const bgRef = useRef<HTMLInputElement>(null)
 
@@ -79,6 +101,50 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
       }
     })
   }, [])
+
+  // Undo/redo keyboard shortcuts: ⌘Z / ⇧⌘Z (Ctrl+Z / Ctrl+Y on Windows)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+      const key = e.key.toLowerCase()
+      if (key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        usePlannerStore.getState().redo()
+      } else if (key === 'z') {
+        e.preventDefault()
+        usePlannerStore.getState().undo()
+      } else if (key === 'y') {
+        e.preventDefault()
+        usePlannerStore.getState().redo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const onCalibrateConfirm = () => {
+    const points = calibratePending
+    const meters = Number.parseFloat(calibrateMeters.replace(',', '.'))
+    setCalibratePending(null)
+    setCalibrateMeters('')
+    if (!points) return
+    if (!Number.isFinite(meters) || meters <= 0) {
+      toast.error(dict.planner.calibrateInvalid)
+      return
+    }
+    const pixels = Math.hypot(points[1][0] - points[0][0], points[1][1] - points[0][1])
+    if (pixels < 2) {
+      toast.error(dict.planner.calibrateInvalid)
+      return
+    }
+    setUnitsPerMeter(pixels / meters)
+    setMode('select')
+    toast.success(dict.planner.calibrateDone)
+  }
 
   const activeFloor = project.floors.find((f) => f.id === activeFloorId)
   const sortedFloors = [...project.floors].sort((a, b) => a.level - b.level)
@@ -298,6 +364,34 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
                 >
                   <PenLineIcon /> {dict.planner.drawRoom}
                 </Button>
+                <Button
+                  variant={mode === 'calibrate' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setMode(mode === 'calibrate' ? 'select' : 'calibrate')}
+                >
+                  <RulerIcon /> {dict.planner.calibrate}
+                </Button>
+                <div className="mx-2 h-5 w-px bg-border" />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={past.length === 0}
+                  onClick={undo}
+                  aria-label={dict.planner.undo}
+                  title={`${dict.planner.undo} (⌘Z)`}
+                >
+                  <Undo2Icon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={future.length === 0}
+                  onClick={redo}
+                  aria-label={dict.planner.redo}
+                  title={`${dict.planner.redo} (⇧⌘Z)`}
+                >
+                  <Redo2Icon />
+                </Button>
                 <div className="mx-2 h-5 w-px bg-border" />
                 <Button variant="ghost" size="sm" onClick={() => bgRef.current?.click()}>
                   <ImageIcon /> {dict.planner.background}
@@ -347,7 +441,20 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
               {mode === 'draw' && (
                 <p className="text-xs text-muted-foreground">{dict.planner.drawingHint}</p>
               )}
-              <TraceEditor dict={dict} showBackground={showBackground} />
+              {mode === 'calibrate' && (
+                <p className="text-xs text-primary">{dict.planner.calibrateHint}</p>
+              )}
+              {mode === 'select' && selectedRoom && (
+                <p className="text-xs text-muted-foreground">{dict.planner.editHint}</p>
+              )}
+              <TraceEditor
+                dict={dict}
+                showBackground={showBackground}
+                onCalibrate={(points) => {
+                  setCalibrateMeters('')
+                  setCalibratePending(points)
+                }}
+              />
               <p className="text-xs text-muted-foreground">{dict.planner.backgroundHint}</p>
             </div>
 
@@ -413,6 +520,40 @@ export default function PlannerApp({ locale }: { locale: Locale }) {
       </Tabs>
 
       <RoomSheet dict={dict} locale={locale} />
+      {calibratePending && (
+        <Dialog open onOpenChange={(open) => !open && setCalibratePending(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{dict.planner.calibrateTitle}</DialogTitle>
+              <DialogDescription>{dict.planner.calibrateBody}</DialogDescription>
+            </DialogHeader>
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                onCalibrateConfirm()
+              }}
+            >
+              <Label htmlFor="calibrate-meters">{dict.planner.calibrateMeters}</Label>
+              <Input
+                id="calibrate-meters"
+                type="text"
+                inputMode="decimal"
+                autoFocus
+                placeholder="3.57"
+                value={calibrateMeters}
+                onChange={(e) => setCalibrateMeters(e.target.value)}
+              />
+              <DialogFooter className="mt-2">
+                <Button type="button" variant="ghost" onClick={() => setCalibratePending(null)}>
+                  {dict.common.cancel}
+                </Button>
+                <Button type="submit">{dict.common.confirm}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
       {pendingPlan && (
         <PlanFloorDialog
           dataUrl={pendingPlan}

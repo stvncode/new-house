@@ -151,6 +151,8 @@ export const en = {
     subtitle:
       'Based on your answers. Each card links to a guide explaining the reasoning — read those before spending money.',
     editAnswers: 'Edit answers',
+    share: 'Copy share link',
+    shareCopied: 'Link copied — anyone opening it sees these recommendations',
     planCta: 'Apply this to your house plan',
     readGuide: 'Read the guide',
     categories: {
@@ -318,6 +320,19 @@ export const en = {
     floorDeleted: 'Floor deleted',
     projectCleared: 'Project cleared',
     exported: 'Project exported',
+    calibrate: 'Calibrate scale',
+    calibrateHint:
+      'Click both ends of a known distance on the plan — a printed dimension line works great.',
+    calibrateTitle: 'Real distance',
+    calibrateBody: 'Enter the real-world distance between the two points you clicked.',
+    calibrateMeters: 'Distance in meters',
+    calibrateDone: 'Scale calibrated — areas and budget now use real dimensions',
+    calibrateInvalid: 'Enter a valid distance in meters',
+    editHint:
+      'Drag corners to reshape · double-click a corner to delete it · click an edge dot to add one · drag device dots to place them',
+    undo: 'Undo',
+    redo: 'Redo',
+    profileHint: 'Adapted to your guide answers',
     planDialogTitle: 'Which floor is this plan for?',
     planDialogBody:
       'The plan and its detected rooms will be assigned to the floor you pick.',

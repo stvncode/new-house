@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { usePlannerStore } from '@/stores/planner'
-import { suggestForRoom } from '@/domain/planner/suggest'
+import { useWizardStore } from '@/stores/wizard'
+import { profileAffectsSuggestions, suggestForRoom } from '@/domain/planner/suggest'
 import { areaSquareMeters } from '@/domain/planner/geometry'
 import { formatEur } from '@/domain/planner/budget'
 import type { RoomType, Tier } from '@/domain/catalog/types'
@@ -30,17 +31,25 @@ export function RoomSheet({ dict, locale }: { dict: Dict; locale: Locale }) {
   const { project, selectedRoomId, selectRoom, updateRoom, deleteRoom, setDeviceQty } =
     usePlannerStore()
 
+  const answers = useWizardStore((s) => s.answers)
+
   const room = project.floors.flatMap((f) => f.rooms).find((r) => r.id === selectedRoomId)
   if (!room) return null
 
-  const suggestions = suggestForRoom(room.type)
+  const suggestions = suggestForRoom(room.type, answers)
+  const profileActive = profileAffectsSuggestions(answers)
   const qtyOf = (catalogId: string) =>
     room.devices.find((d) => d.catalogId === catalogId)?.qty ?? 0
   const area = areaSquareMeters(room.polygon, project.unitsPerMeter)
 
   return (
-    <Sheet open onOpenChange={(open) => !open && selectRoom(null)}>
-      <SheetContent>
+    // Non-modal so corners and device markers stay draggable on the plan behind
+    <Sheet open modal={false} onOpenChange={(open) => !open && selectRoom(null)}>
+      <SheetContent
+        overlay={false}
+        onInteractOutside={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <SheetHeader>
           <SheetTitle>{room.name || dict.roomTypes[room.type]}</SheetTitle>
           <SheetDescription>{dict.planner.area(area.toFixed(1))}</SheetDescription>
@@ -79,9 +88,12 @@ export function RoomSheet({ dict, locale }: { dict: Dict; locale: Locale }) {
         <Separator />
 
         <div className="flex flex-col gap-4">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {dict.planner.suggested}
-          </h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              {dict.planner.suggested}
+            </h3>
+            {profileActive && <Badge variant="success">{dict.planner.profileHint}</Badge>}
+          </div>
           {TIERS.map((tier) => {
             const items = suggestions.filter((item) => item.tier === tier)
             if (items.length === 0) return null
