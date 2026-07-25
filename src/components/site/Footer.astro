@@ -1,0 +1,17 @@
+---
+import { getDict, type Locale } from '@/i18n'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const dict = getDict(locale)
+---
+
+<footer class="border-t border-border/60 py-8 print:hidden">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 text-sm text-muted-foreground sm:px-6">
+    <p>{dict.site.footer}</p>
+    <p class="font-display">{dict.site.name} © {new Date().getFullYear()}</p>
+  </div>
+</footer>

@@ -1,0 +1,71 @@
+---
+import Base from '@/layouts/Base.astro'
+import HeroHouse from '@/components/home/HeroHouse'
+import { getDict, localizePath, LOCALES, isLocale, type Locale } from '@/i18n'
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }))
+}
+
+const lang = Astro.params.lang
+const locale: Locale = isLocale(lang) ? lang : 'en'
+const dict = getDict(locale)
+
+const features = [
+  { key: 'wizard', href: localizePath('/wizard', locale), ...dict.home.features.wizard },
+  { key: 'planner', href: localizePath('/planner', locale), ...dict.home.features.planner },
+  { key: 'guides', href: localizePath('/guides', locale), ...dict.home.features.guides },
+]
+---
+
+<Base locale={locale}>
+  <section class="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-8 pt-14 sm:px-6 lg:grid-cols-[5fr_6fr] lg:pt-20">
+    <div class="flex animate-rise flex-col items-start gap-6">
+      <span class="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-primary">
+        {dict.home.heroKicker}
+      </span>
+      <h1 class="font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
+        {dict.home.heroTitle}
+      </h1>
+      <p class="max-w-xl text-lg leading-relaxed text-muted-foreground">
+        {dict.home.heroSubtitle}
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a
+          href={localizePath('/wizard', locale)}
+          class="inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-6 font-medium text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
+        >
+          {dict.home.ctaWizard}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a
+          href={localizePath('/planner', locale)}
+          class="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-secondary px-6 font-medium transition-colors hover:bg-accent"
+        >
+          {dict.home.ctaPlanner}
+        </a>
+      </div>
+    </div>
+
+    <div class="overflow-hidden rounded-2xl border border-border/70 bg-black/20 shadow-glow-lg">
+      <HeroHouse client:only="react" locale={locale} />
+    </div>
+  </section>
+
+  <section class="mx-auto grid max-w-6xl gap-4 px-4 py-14 sm:px-6 md:grid-cols-3">
+    {
+      features.map((feature, i) => (
+        <a
+          href={feature.href}
+          class="group flex animate-rise flex-col gap-3 rounded-xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow"
+          style={`animation-delay: ${i * 90}ms`}
+        >
+          <h2 class="font-display text-lg font-semibold group-hover:text-primary">
+            {feature.title}
+          </h2>
+          <p class="text-sm leading-relaxed text-muted-foreground">{feature.body}</p>
+        </a>
+      ))
+    }
+  </section>
+</Base>

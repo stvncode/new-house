@@ -1,0 +1,23 @@
+---
+import Base from '@/layouts/Base.astro'
+import WizardApp from '@/components/wizard/WizardApp'
+import { getDict, LOCALES, isLocale, type Locale } from '@/i18n'
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }))
+}
+
+const lang = Astro.params.lang
+const locale: Locale = isLocale(lang) ? lang : 'en'
+const dict = getDict(locale)
+---
+
+<Base locale={locale} title={dict.wizard.title}>
+  <section class="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <div class="mb-10 text-center">
+      <h1 class="font-display text-3xl font-semibold sm:text-4xl">{dict.wizard.title}</h1>
+      <p class="mx-auto mt-3 max-w-xl text-muted-foreground">{dict.wizard.subtitle}</p>
+    </div>
+    <WizardApp client:only="react" locale={locale} />
+  </section>
+</Base>
