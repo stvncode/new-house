@@ -1,5 +1,5 @@
-import { useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useMemo } from 'react'
+import { Canvas } from '@react-three/fiber'
 import { Edges, Html, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { Project, Room, Vec2 } from '@/domain/planner/types'
@@ -25,6 +25,49 @@ function getGlowTexture(): THREE.CanvasTexture {
 }
 
 /** Maquette-style proportions: short walls so you can see into every room */
+/** Speckled lawn texture — reads as grass without any geometry cost */
+let grassTexture: THREE.CanvasTexture | null = null
+function getGrassTexture(): THREE.CanvasTexture {
+  if (grassTexture) return grassTexture
+  const size = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#3a5431'
+  ctx.fillRect(0, 0, size, size)
+  const tones = ['#446139', '#30462a', '#4c6c41', '#385230', '#405c37']
+  for (let i = 0; i < 2600; i++) {
+    ctx.fillStyle = tones[(Math.random() * tones.length) | 0]!
+    const x = Math.random() * size
+    const y = Math.random() * size
+    ctx.fillRect(x, y, 1 + Math.random() * 1.5, 1 + Math.random() * 3)
+  }
+  grassTexture = new THREE.CanvasTexture(canvas)
+  grassTexture.wrapS = THREE.RepeatWrapping
+  grassTexture.wrapT = THREE.RepeatWrapping
+  return grassTexture
+}
+
+/** Soft warm halo for the sun */
+let sunHaloTexture: THREE.CanvasTexture | null = null
+function getSunHaloTexture(): THREE.CanvasTexture {
+  if (sunHaloTexture) return sunHaloTexture
+  const size = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+  gradient.addColorStop(0, 'rgba(255, 226, 160, 0.9)')
+  gradient.addColorStop(0.3, 'rgba(255, 200, 120, 0.35)')
+  gradient.addColorStop(1, 'rgba(255, 180, 90, 0)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, size, size)
+  sunHaloTexture = new THREE.CanvasTexture(canvas)
+  return sunHaloTexture
+}
+
 const WALL_H = 1.4
 const WALL_T = 0.12
 const PLATE = 0.1
@@ -35,7 +78,6 @@ const COLOR_EDGE = '#454b5c'
 const COLOR_GLOW = '#ff9c4a'
 const COLOR_FLOOR = '#5c4a35'
 const COLOR_SELECTED = '#f2b263'
-const COLOR_GROUND = '#0c0e14'
 
 interface SceneTransform {
   cx: number
@@ -269,19 +311,55 @@ function Rig({ radius, autoRotate }: { radius: number; autoRotate: boolean }) {
   )
 }
 
-function Moon({ d }: { d: number }) {
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame(({ camera }) => {
-    // Keep the moon high in the backdrop, far behind the house
-    if (!ref.current) return
-    const dir = camera.position.clone().setY(0).normalize()
-    ref.current.position.set(-dir.x * d * 2.4, d * 1.1, -dir.z * d * 2.4)
-  })
+/** A small garden plot under the house — a diorama base, not an endless field */
+function Lawn({ radius }: { radius: number }) {
+  const texture = useMemo(() => {
+    const t = getGrassTexture().clone()
+    // Roughly one texture tile per 2m of lawn
+    t.repeat.set(radius / 2, radius / 2)
+    t.needsUpdate = true
+    return t
+  }, [radius])
   return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[d * 0.055, 24, 24]} />
-      <meshBasicMaterial color="#d9d2c2" fog={false} />
-    </mesh>
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} receiveShadow>
+        <circleGeometry args={[radius, 64]} />
+        <meshStandardMaterial map={texture} roughness={1} />
+      </mesh>
+      {/* Thin platform edge so the plot reads as a maquette base */}
+      <mesh position={[0, -0.07, 0]}>
+        <cylinderGeometry args={[radius, radius, 0.12, 64]} />
+        <meshStandardMaterial color="#161a24" roughness={0.9} />
+      </mesh>
+    </group>
+  )
+}
+
+/**
+ * A small sun fixed in world space, low over the scene's visual horizon on
+ * the same side as the warm key light — it moves naturally as you orbit
+ * and sets behind the house from the default view.
+ */
+function Sun({ d }: { d: number }) {
+  const position = useMemo(() => {
+    return new THREE.Vector3(-1, -0.16, -1).normalize().multiplyScalar(d * 2.4)
+  }, [d])
+  return (
+    <group position={position}>
+      <mesh>
+        <sphereGeometry args={[d * 0.05, 24, 24]} />
+        <meshBasicMaterial color="#ffe8b8" fog={false} />
+      </mesh>
+      <sprite scale={[d * 0.32, d * 0.32, 1]}>
+        <spriteMaterial
+          map={getSunHaloTexture()}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          fog={false}
+        />
+      </sprite>
+    </group>
   )
 }
 
@@ -318,20 +396,27 @@ export function HouseScene({
       camera={{ position: [d * 0.72, d * 0.6, d * 0.72], fov: 32 }}
       onPointerMissed={onSelectRoom ? () => onSelectRoom('') : undefined}
     >
-      <fog attach="fog" args={['#11131c', d * 1.2, d * 4.5]} />
-      {/* Night-sky fill: cool from above, faint warm bounce from the ground */}
-      <hemisphereLight args={['#94a7dd', '#40342a', 1.1]} />
-      {/* Moonlight key */}
+      <fog attach="fog" args={['#131521', d * 1.2, d * 4.5]} />
+      {/* Golden-hour fill: dusk sky above, grass bounce below */}
+      <hemisphereLight args={['#8fa3d8', '#33422a', 1.1]} />
+      {/* Warm sun key, from the sun's side of the sky */}
       <directionalLight
-        position={[14, 20, 8]}
+        position={[-13, 11, -13]}
         intensity={2.2}
-        color="#cdd8f7"
+        color="#ffdfae"
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-(transform.radius * 1.8 + 3)}
+        shadow-camera-right={transform.radius * 1.8 + 3}
+        shadow-camera-top={transform.radius * 1.8 + 3}
+        shadow-camera-bottom={-(transform.radius * 1.8 + 3)}
+        shadow-camera-near={1}
+        shadow-camera-far={d * 3}
+        shadow-bias={-0.0004}
       />
-      {/* Warm rim from the opposite side so shaded facades stay legible */}
-      <directionalLight position={[-12, 9, -11]} intensity={1.0} color="#ffb98a" />
-      <Moon d={d} />
+      {/* Cool fill from the camera side so front facades stay legible */}
+      <directionalLight position={[12, 10, 12]} intensity={0.9} color="#9fb4e8" />
+      <Sun d={d} />
       {project.floors.map((floor) => (
         <group key={floor.id}>
           <Foundation
@@ -354,10 +439,12 @@ export function HouseScene({
           ))}
         </group>
       ))}
-      {/* Ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+      {/* Small garden plot under the house */}
+      <Lawn radius={transform.radius * 1.5 + 2} />
+      {/* Dark ground plane beneath everything */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.12, 0]} receiveShadow>
         <circleGeometry args={[Math.max(transform.radius * 4, 26), 48]} />
-        <meshStandardMaterial color={COLOR_GROUND} roughness={1} />
+        <meshStandardMaterial color="#0c0e14" roughness={1} />
       </mesh>
       <Rig radius={transform.radius} autoRotate={autoRotate} />
     </Canvas>
