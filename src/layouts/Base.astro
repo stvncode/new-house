@@ -1,5 +1,6 @@
 ---
 import '@/styles/global.css'
+import Analytics from '@vercel/analytics/astro'
 import Header from '@/components/site/Header.astro'
 import Footer from '@/components/site/Footer.astro'
 import { getDict, type Locale } from '@/i18n'
@@ -28,6 +29,7 @@ const pageDescription = description ?? dict.home.heroSubtitle
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" hreflang="en" href={new URL(Astro.url.pathname.replace(/^\/(en|fr)/, '/en'), Astro.site ?? Astro.url)} />
     <link rel="alternate" hreflang="fr" href={new URL(Astro.url.pathname.replace(/^\/(en|fr)/, '/fr'), Astro.site ?? Astro.url)} />
+    <Analytics />
   </head>
   <body class="flex min-h-svh flex-col">
     <Header locale={locale} />
